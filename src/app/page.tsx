@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -49,9 +49,15 @@ export default function AuditPage() {
   const [emailError, setEmailError] = useState<string | null>(null);
   const [emailSuccess, setEmailSuccess] = useState(false);
 
-  const { register, control, handleSubmit, watch, formState: { errors } } = useForm<AuditFormData>({
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  const { register, control, handleSubmit, watch, formState: { errors }, reset } = useForm<AuditFormData>({
     resolver: zodResolver(auditFormSchema),
-    defaultValues: savedFormData || {
+    defaultValues: {
       teamSize: undefined,
       useCase: 'coding',
       tools: [{ tool: '', plan: '', monthlySpend: 0, seats: 1 }],
@@ -59,14 +65,20 @@ export default function AuditPage() {
     mode: 'onChange',
   });
 
+  useEffect(() => {
+    if (isMounted && savedFormData) {
+      reset(savedFormData);
+    }
+  }, [isMounted, savedFormData, reset]);
+
   const { fields, append, remove } = useFieldArray({ control, name: 'tools' });
 
   const watchedValues = watch();
-  useMemo(() => {
-    if (watchedValues.tools?.length > 0) {
+  useEffect(() => {
+    if (isMounted && watchedValues.tools?.length > 0) {
       setSavedFormData(watchedValues);
     }
-  }, [JSON.stringify(watchedValues)]);
+  }, [JSON.stringify(watchedValues), isMounted, setSavedFormData]);
 
   const { register: registerEmail, handleSubmit: handleEmailSubmit, formState: { errors: emailErrors } } = useForm<EmailGateFormData>({
     resolver: zodResolver(emailGateSchema),
@@ -355,7 +367,7 @@ export default function AuditPage() {
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, type: 'spring' }}
-            className="w-full max-w-3xl mx-auto px-6 pb-20"
+            className="w-full max-w-4xl mx-auto px-4 sm:px-6 pb-20"
           >
             <div className="sv-card p-10 text-center mb-8 border-purple-500/20 shadow-[0_0_50px_rgba(168,85,247,0.1)]">
               <p className="text-sm font-semibold text-purple-400 uppercase tracking-widest mb-4">
@@ -380,118 +392,187 @@ export default function AuditPage() {
               </div>
             </div>
 
-            {/* Gated Details */}
-            <div className="relative mt-8">
-              <div className={isUnlocked ? '' : 'blur-gate'}>
-                {aiSummary && (
-                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="sv-card p-8 mb-6">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 w-10 h-10 rounded-xl flex items-center justify-center">
-                        <Sparkles size={18} />
-                      </div>
-                      <h3 className="text-lg font-semibold text-white">AI CFO Analysis</h3>
+            {/* Gated Details (Dashboard Panel) */}
+            <div className="relative mt-12 group">
+              {/* Vibrant Ambient Glow behind the dashboard */}
+              <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 via-indigo-600 to-pink-600 rounded-[2rem] blur-2xl opacity-20 group-hover:opacity-40 transition duration-1000"></div>
+
+              {/* Dashboard Container */}
+              <div className="relative z-10 bg-[#0f172a]/95 backdrop-blur-2xl border border-white/10 rounded-[2rem] shadow-2xl overflow-hidden min-h-[450px]">
+                
+                {/* Tech Dashboard Header */}
+                <div className="flex items-center justify-between px-6 sm:px-8 py-5 border-b border-white/5 bg-gradient-to-r from-white/[0.03] to-transparent">
+                  <div className="flex items-center gap-3">
+                    <div className="relative flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
                     </div>
-                    <p className="text-gray-300 leading-relaxed">{aiSummary}</p>
-                  </motion.div>
-                )}
-
-                <div className="space-y-4">
-                  {auditResult.toolResults.map((tr, i) => (
-                    <motion.div key={i} className="sv-card sv-card-hover p-6">
-                      <div className="flex items-start justify-between mb-4">
-                        <div>
-                          <h4 className="font-semibold text-white text-lg">{tr.tool}</h4>
-                          <p className="text-sm text-gray-500 font-mono mt-1">
-                            Current: {tr.currentPlan} — ${tr.currentSpend}/mo
-                          </p>
-                        </div>
-                        <span className={`badge ${tr.recommendedAction === 'keep' ? 'badge-success' : tr.recommendedAction === 'downgrade' ? 'badge-warning' : tr.recommendedAction === 'switch' ? 'badge-info' : tr.recommendedAction === 'optimize' ? 'badge-warning' : 'badge-danger'}`}>
-                          {tr.recommendedAction.toUpperCase()}
-                        </span>
-                      </div>
-
-                      <p className="text-sm text-gray-400 leading-relaxed mb-4 pb-4 border-b border-gray-800">
-                        {tr.defensibleReason}
-                      </p>
-
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-300 font-medium flex items-center gap-2">
-                          <ArrowRight size={14} className="text-purple-400" />
-                          {tr.recommendedTool && tr.recommendedTool !== tr.tool ? `${tr.recommendedTool} ` : ''}{tr.recommendedPlan}
-                        </span>
-                        {tr.savingsMonthly > 0 && (
-                          <span className="font-bold text-emerald-400 bg-emerald-400/10 px-3 py-1 rounded-lg border border-emerald-400/20">
-                            Save ${tr.savingsMonthly.toLocaleString()}/mo
-                          </span>
-                        )}
-                      </div>
-                    </motion.div>
-                  ))}
+                    <h2 className="text-sm sm:text-base font-mono font-bold tracking-widest text-white uppercase">
+                      Audit_Ledger // {new Date().getFullYear()}
+                    </h2>
+                  </div>
+                  <div className="text-[10px] sm:text-xs font-mono text-gray-400 bg-black/60 px-3 py-1.5 rounded-full border border-white/5">
+                    STATUS: {auditResult.savingsTier.toUpperCase()}
+                  </div>
                 </div>
 
-                {reportUrl && (
-                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="sv-card p-8 mt-6 text-center">
-                    <p className="text-sm text-gray-400 mb-3">Share your audit report:</p>
-                    <a href={reportUrl} target="_blank" rel="noopener noreferrer" className="text-purple-400 font-medium hover:text-purple-300 underline underline-offset-4 break-all">
-                      {reportUrl}
-                    </a>
-                  </motion.div>
-                )}
-              </div>
-
-              {/* Email Gate Modal Overlay */}
-              {!isUnlocked && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.5 }}
-                  className="absolute inset-0 flex items-center justify-center z-10"
-                >
-                  <div className="sv-card p-10 max-w-md mx-auto text-center shadow-[0_0_100px_rgba(0,0,0,0.8)] border-gray-700">
-                    <div className="bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                      <Lock size={24} />
-                    </div>
-                    <h3 className="text-2xl font-bold mb-3 text-white tracking-tight">Unlock Report</h3>
-                    <p className="text-sm text-gray-400 mb-8 leading-relaxed">
-                      Enter your email to unlock detailed per-tool recommendations, the AI-powered analysis, and a shareable report link.
-                    </p>
-
-                    {emailError && (
-                      <div className="text-sm text-red-400 bg-red-400/10 border border-red-400/20 rounded-xl p-4 mb-6">
-                        {emailError}
-                      </div>
+                {/* Dashboard Body */}
+                <div className="relative p-6 sm:p-10">
+                  <div className={isUnlocked ? 'space-y-8' : 'space-y-8 blur-gate'}>
+                    
+                    {/* CFO Analysis Block */}
+                    {aiSummary && (
+                      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="relative rounded-2xl bg-gradient-to-br from-indigo-500/10 to-purple-500/5 border border-indigo-500/20 p-8 shadow-inner overflow-hidden">
+                        {/* Background wireframe accent */}
+                        <div className="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none"></div>
+                        
+                        <div className="relative z-10">
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="bg-indigo-500/20 text-indigo-300 w-10 h-10 rounded-xl flex items-center justify-center border border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.2)]">
+                              <Sparkles size={18} />
+                            </div>
+                            <h3 className="text-lg font-semibold text-white tracking-tight">AI CFO Analysis</h3>
+                          </div>
+                          <p className="text-gray-300 leading-relaxed text-sm sm:text-base">{aiSummary}</p>
+                        </div>
+                      </motion.div>
                     )}
 
-                    <form onSubmit={handleEmailSubmit(onEmailSubmit)} className="space-y-4">
-                      <div>
-                        <input type="email" className="input-field text-center py-3" placeholder="you@company.com" {...registerEmail('email')} />
-                        {emailErrors.email && <p className="form-error">{emailErrors.email.message}</p>}
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <input type="text" className="input-field text-center" placeholder="Company" {...registerEmail('companyName')} />
-                        <input type="text" className="input-field text-center" placeholder="Role" {...registerEmail('role')} />
-                      </div>
-                      <input type="text" className="hidden" tabIndex={-1} autoComplete="off" aria-hidden="true" {...registerEmail('honeypot')} />
-                      
-                      <motion.button type="submit" disabled={isSubmittingEmail} className="btn-primary w-full flex items-center justify-center gap-2 mt-2" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                        {isSubmittingEmail ? (
-                          <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Unlocking…</>
-                        ) : (
-                          <><Sparkles size={16} /> Reveal Audit</>
-                        )}
-                      </motion.button>
-                    </form>
-                    <p className="text-xs text-gray-500 mt-6 font-mono">
-                      Strictly private. No spam.
-                    </p>
+                    {/* Tool Ledger Rows */}
+                    <div className="space-y-4">
+                      {auditResult.toolResults.map((tr, i) => {
+                        const getAccent = (action: string) => {
+                          switch (action) {
+                            case 'keep': return 'bg-emerald-500';
+                            case 'downgrade': return 'bg-amber-500';
+                            case 'switch': return 'bg-cyan-500';
+                            case 'optimize': return 'bg-amber-500';
+                            default: return 'bg-red-500';
+                          }
+                        };
+                        const getBadge = (action: string) => {
+                          switch (action) {
+                            case 'keep': return 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20';
+                            case 'downgrade': return 'text-amber-400 bg-amber-400/10 border-amber-400/20';
+                            case 'switch': return 'text-cyan-400 bg-cyan-400/10 border-cyan-400/20';
+                            case 'optimize': return 'text-amber-400 bg-amber-400/10 border-amber-400/20';
+                            default: return 'text-red-400 bg-red-400/10 border-red-400/20';
+                          }
+                        };
+
+                        return (
+                          <motion.div key={i} className="relative overflow-hidden rounded-xl bg-black/40 border border-white/5 p-6 hover:bg-black/60 transition-colors">
+                            {/* Accent Line */}
+                            <div className={`absolute left-0 top-0 bottom-0 w-1 ${getAccent(tr.recommendedAction)} shadow-[0_0_10px_currentColor]`}></div>
+                            
+                            <div className="flex items-start justify-between mb-4">
+                              <div>
+                                <h4 className="font-semibold text-white text-lg tracking-tight">{tr.tool}</h4>
+                                <p className="text-xs text-gray-500 font-mono mt-1 uppercase tracking-wider">
+                                  Current: {tr.currentPlan} <span className="text-gray-700 mx-1">|</span> <span className="text-gray-400">${tr.currentSpend}/mo</span>
+                                </p>
+                              </div>
+                              <span className={`text-[10px] sm:text-xs font-bold px-2.5 py-1 rounded-md border uppercase tracking-wider ${getBadge(tr.recommendedAction)}`}>
+                                {tr.recommendedAction}
+                              </span>
+                            </div>
+
+                            <p className="text-sm text-gray-400 leading-relaxed mb-5 pb-5 border-b border-white/5">
+                              {tr.defensibleReason}
+                            </p>
+
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sm">
+                              <span className="text-gray-300 font-medium flex items-center gap-2">
+                                <ArrowRight size={14} className="text-purple-400" />
+                                <span className="font-mono bg-white/5 px-2 py-0.5 rounded text-xs">{tr.recommendedTool && tr.recommendedTool !== tr.tool ? `${tr.recommendedTool} ` : ''}{tr.recommendedPlan}</span>
+                              </span>
+                              {tr.savingsMonthly > 0 ? (
+                                <span className="font-bold text-emerald-400 flex items-center gap-1.5">
+                                  <TrendingDown size={14} />
+                                  Save ${tr.savingsMonthly.toLocaleString()}/mo
+                                </span>
+                              ) : (
+                                <span className="font-medium text-gray-600 font-mono text-xs">
+                                  Optimal Setup
+                                </span>
+                              )}
+                            </div>
+                          </motion.div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Report URL Display */}
+                    {reportUrl && (
+                      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="rounded-xl border border-white/10 bg-black/40 p-6 flex flex-col items-center mt-8">
+                        <p className="text-xs text-gray-400 mb-3 font-mono uppercase tracking-widest">Shareable Audit Link</p>
+                        <div className="w-full flex justify-center">
+                          <a href={reportUrl} target="_blank" rel="noopener noreferrer" className="text-purple-400 font-mono text-sm sm:text-base hover:text-purple-300 break-all bg-purple-500/10 border border-purple-500/20 rounded-lg px-4 py-3 text-center w-full shadow-inner hover:shadow-[0_0_15px_rgba(168,85,247,0.2)] transition-shadow">
+                            {reportUrl}
+                          </a>
+                        </div>
+                      </motion.div>
+                    )}
                   </div>
-                </motion.div>
-              )}
+
+                  {/* Email Gate Modal Overlay */}
+                  {!isUnlocked && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.5 }}
+                      className="absolute inset-0 flex items-center justify-center z-10 bg-[#050810]/70 backdrop-blur-md"
+                    >
+                      <div className="bg-black/80 border border-white/10 p-8 sm:p-10 max-w-md mx-auto text-center rounded-2xl shadow-2xl">
+                        <div className="bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                          <Lock size={24} />
+                        </div>
+                        <h3 className="text-2xl font-bold mb-3 text-white tracking-tight">Unlock Full Report</h3>
+                        <p className="text-sm text-gray-400 mb-8 leading-relaxed">
+                          Enter your email to unlock detailed per-tool recommendations, the AI-powered analysis, and a shareable link.
+                        </p>
+
+                        {emailError && (
+                          <div className="text-sm text-red-400 bg-red-400/10 border border-red-400/20 rounded-xl p-4 mb-6">
+                            {emailError}
+                          </div>
+                        )}
+
+                        <form onSubmit={handleEmailSubmit(onEmailSubmit)} className="space-y-4">
+                          <div>
+                            <input type="email" className="input-field text-center py-3 bg-[#0a0f18]" placeholder="you@company.com" {...registerEmail('email')} />
+                            {emailErrors.email && <p className="form-error">{emailErrors.email.message}</p>}
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <input type="text" className="input-field text-center bg-[#0a0f18]" placeholder="Company" {...registerEmail('companyName')} />
+                            <input type="text" className="input-field text-center bg-[#0a0f18]" placeholder="Role" {...registerEmail('role')} />
+                          </div>
+                          <input type="text" className="hidden" tabIndex={-1} autoComplete="off" aria-hidden="true" {...registerEmail('honeypot')} />
+                          
+                          <motion.button type="submit" disabled={isSubmittingEmail} className="btn-primary w-full flex items-center justify-center gap-2 mt-4" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                            {isSubmittingEmail ? (
+                              <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Unlocking…</>
+                            ) : (
+                              <><Sparkles size={16} /> Reveal Audit</>
+                            )}
+                          </motion.button>
+                        </form>
+                        <p className="text-xs text-gray-500 mt-6 font-mono">
+                          Strictly private. No spam.
+                        </p>
+                      </div>
+                    </motion.div>
+                  )}
+                </div>
+              </div>
             </div>
 
             {emailSuccess && (
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-8 p-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-center">
-                <p className="text-emerald-400 font-medium">✅ Report unlocked and sent to your email!</p>
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-8 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-center">
+                <p className="text-emerald-400 font-medium flex items-center justify-center gap-2">
+                  <span className="bg-emerald-400 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">✓</span>
+                  Report unlocked and sent to your email!
+                </p>
               </motion.div>
             )}
           </motion.section>
@@ -499,9 +580,12 @@ export default function AuditPage() {
       </AnimatePresence>
 
       {/* FOOTER */}
-      <footer className="w-full border-t border-gray-800/80 bg-[#0f172a] py-10 flex items-center justify-center text-gray-500 text-sm font-medium mt-auto">
-        <div className="flex items-center gap-2">
-          <TrendingDown size={16} className="text-gray-600" /> StackAudit <span className="text-gray-700">|</span> Deterministic Finance Engine
+      <footer className="w-full py-12 flex items-center justify-center text-gray-500 text-sm font-medium mt-auto relative z-10 bg-gradient-to-t from-[#050810] to-transparent">
+        <div className="flex items-center gap-2 opacity-80 hover:opacity-100 transition-opacity">
+          <span className="font-mono text-purple-400">&lt;/&gt;</span>
+          <span className="text-gray-400">StackAudit</span> 
+          <span className="text-gray-700">|</span> 
+          <span>Crafted for Developers</span>
         </div>
       </footer>
     </div>
