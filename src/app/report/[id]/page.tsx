@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { BarChart3, TrendingDown, Sparkles, ExternalLink, ArrowLeft } from 'lucide-react';
+import { BarChart3, TrendingDown, Sparkles, ExternalLink, ArrowLeft, Shield, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import type { AuditResult, ToolAuditResult } from '@/lib/types';
 
@@ -25,7 +25,6 @@ async function getAuditById(id: string): Promise<AuditRecord | null> {
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    console.warn('[StackAudit] Supabase not configured. Cannot fetch report.');
     return null;
   }
 
@@ -47,179 +46,130 @@ async function getAuditById(id: string): Promise<AuditRecord | null> {
   }
 }
 
-/* ============================================
-   DYNAMIC OPEN GRAPH METADATA
-============================================ */
-type MetadataProps = { params: Promise<{ id: string }> };
-
-export async function generateMetadata({ params }: MetadataProps): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
   const audit = await getAuditById(id);
 
   if (!audit) {
-    return {
-      title: 'Report Not Found | StackAudit',
-      description: 'This audit report could not be found.',
-    };
+    return { title: 'Report Not Found | StackAudit' };
   }
 
-  const monthlySavings = audit.total_monthly_savings;
-  const annualSavings = audit.total_annual_savings;
-  const toolCount = audit.results?.toolResults?.length || 0;
-
   return {
-    title: `$${annualSavings.toLocaleString()}/yr in AI Savings Found | StackAudit`,
-    description: `This ${audit.team_size}-person team found $${monthlySavings.toLocaleString()}/mo in savings across ${toolCount} AI tools. Audit your stack for free.`,
+    title: `$${audit.total_annual_savings.toLocaleString()}/yr in AI Savings Found | StackAudit`,
+    description: `This ${audit.team_size}-person team found $${audit.total_monthly_savings.toLocaleString()}/mo in savings. Audit your stack for free.`,
     openGraph: {
-      title: `We just found $${annualSavings.toLocaleString()} in AI tool savings! 🚀`,
-      description: `StackAudit analyzed ${toolCount} tools and found $${monthlySavings.toLocaleString()}/mo in overspend. Audit your stack for free at stackaudit.dev`,
+      title: `We just found $${audit.total_annual_savings.toLocaleString()} in AI tool savings! 🚀`,
+      description: `StackAudit analyzed the stack and found $${audit.total_monthly_savings.toLocaleString()}/mo in overspend.`,
       type: 'website',
-      siteName: 'StackAudit by Credex',
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title: `$${annualSavings.toLocaleString()}/yr in AI tool savings found 🔍`,
-      description: `StackAudit found major savings across ${toolCount} AI tools. Free audit — no signup required.`,
+      siteName: 'StackAudit',
     },
   };
 }
 
-/* ============================================
-   ACTION BADGE COMPONENT
-============================================ */
 function ActionBadge({ action }: { action: ToolAuditResult['recommendedAction'] }) {
   const styles: Record<string, string> = {
-    keep: 'badge-success',
-    downgrade: 'badge-warning',
-    switch: 'badge-info',
-    optimize: 'badge-warning',
-    consolidate: 'badge-danger',
+    keep: 'badge-success', downgrade: 'badge-warning', switch: 'badge-info', optimize: 'badge-warning', consolidate: 'badge-danger',
   };
-  const labels: Record<string, string> = {
-    keep: '✓ Optimal',
-    downgrade: '↓ Downgrade',
-    switch: '↔ Switch',
-    optimize: '⚡ Optimize',
-    consolidate: '⊕ Consolidate',
-  };
-  return <span className={`badge ${styles[action] || 'badge-info'}`}>{labels[action] || action}</span>;
+  return <span className={`badge ${styles[action] || 'badge-info'}`}>{action.toUpperCase()}</span>;
 }
 
-/* ============================================
-   REPORT PAGE COMPONENT
-   Privacy: Strips email, company name — shows only tools & savings
-============================================ */
 export default async function ReportPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const audit = await getAuditById(id);
 
-  if (!audit) {
-    notFound();
-  }
+  if (!audit) notFound();
 
   const { results, team_size, use_case, ai_summary, created_at } = audit;
-  const createdDate = new Date(created_at).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
+  const createdDate = new Date(created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
   return (
     <div className="flex flex-col items-center min-h-screen">
-      {/* Header */}
-      <header className="w-full border-b border-white/5 py-4 px-6">
+      <header className="w-full border-b border-gray-800/80 bg-[#0f172a] py-4 px-6 sticky top-0 z-50">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-gradient-primary flex items-center justify-center">
               <BarChart3 size={18} className="text-white" />
             </div>
-            <span className="text-lg font-bold tracking-tight">
-              Stack<span className="text-indigo-400">Audit</span>
+            <span className="text-lg font-bold tracking-tight text-white">
+              Stack<span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500">Audit</span>
             </span>
           </Link>
-          <Link
-            href="/"
-            className="btn-secondary flex items-center gap-1.5 text-sm"
-          >
-            <ArrowLeft size={14} /> Run Your Own Audit
+          <Link href="/" className="btn-secondary flex items-center gap-1.5 text-sm">
+            <ArrowLeft size={14} /> Run Audit
           </Link>
         </div>
       </header>
 
-      {/* Report Content */}
-      <main className="w-full max-w-3xl mx-auto px-6 py-12">
-        {/* Report Header */}
-        <div className="text-center mb-10">
-          <span className="badge badge-info mb-4">📊 Shared Report</span>
-          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-2">
-            AI Stack Audit Report
+      <main className="w-full max-w-3xl mx-auto px-6 py-16">
+        <div className="text-center mb-12">
+          <span className="badge badge-info mb-5">📊 Public Report</span>
+          <h1 className="text-4xl sm:text-5xl font-bold tracking-tight mb-4 text-white">
+            AI Stack Audit
           </h1>
-          <p className="text-sm text-slate-500">
-            {team_size}-person team • {use_case} • Generated {createdDate}
+          <p className="text-sm font-mono text-gray-500 bg-gray-800/30 inline-block px-3 py-1.5 rounded-lg border border-gray-800/50">
+            {team_size}-person team • {use_case} • {createdDate}
           </p>
         </div>
 
-        {/* Savings Hero */}
-        <div className="glass-card p-8 sm:p-10 text-center mb-8">
-          <p className="text-sm font-semibold text-indigo-400 uppercase tracking-widest mb-3">
-            Potential Savings Identified
+        <div className="sv-card p-10 text-center mb-10 border-purple-500/20 shadow-[0_0_50px_rgba(168,85,247,0.1)]">
+          <p className="text-sm font-semibold text-purple-400 uppercase tracking-widest mb-4">
+            Potential Savings
           </p>
-          <p className="text-5xl sm:text-6xl font-black savings-number mb-1">
-            ${results.totalMonthlySavings.toLocaleString()}
-            <span className="text-xl font-semibold text-slate-400">/mo</span>
-          </p>
-          <p className="text-xl font-bold text-slate-300">
-            ${results.totalAnnualSavings.toLocaleString()}
-            <span className="text-sm font-medium text-slate-500"> per year</span>
-          </p>
-
-          <div className="flex items-center justify-center gap-3 mt-5">
-            {results.savingsTier === 'high' && <span className="badge badge-danger">🔥 High Savings</span>}
-            {results.savingsTier === 'moderate' && <span className="badge badge-warning">📊 Moderate Savings</span>}
-            {results.savingsTier === 'low' && <span className="badge badge-success">✅ Minor Tweaks</span>}
-            {results.savingsTier === 'optimal' && <span className="badge badge-success">🏆 Optimized</span>}
+          <div className="mb-2">
+            <p className="text-6xl sm:text-7xl font-bold text-gradient mb-2 inline-block">
+              ${results.totalMonthlySavings.toLocaleString()}
+            </p>
+            <span className="text-2xl font-semibold text-gray-500 ml-2">/mo</span>
           </div>
+          <p className="text-xl font-bold text-gray-300">
+            ${results.totalAnnualSavings.toLocaleString()}
+            <span className="text-sm font-medium text-gray-500"> per year</span>
+          </p>
         </div>
 
-        {/* AI Summary */}
         {ai_summary && (
-          <div className="glass-card p-6 mb-8">
-            <h2 className="text-md font-semibold text-indigo-400 mb-3 flex items-center gap-2">
-              <Sparkles size={16} /> AI-Powered Analysis
-            </h2>
-            <p className="text-slate-300 leading-relaxed text-sm">{ai_summary}</p>
+          <div className="sv-card p-8 mb-8">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 w-10 h-10 rounded-xl flex items-center justify-center">
+                <Sparkles size={18} />
+              </div>
+              <h2 className="text-lg font-semibold text-white">AI CFO Analysis</h2>
+            </div>
+            <p className="text-gray-300 leading-relaxed">{ai_summary}</p>
           </div>
         )}
 
-        {/* Per-tool breakdown */}
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <TrendingDown size={18} className="text-indigo-400" /> Tool-by-Tool Breakdown
-        </h2>
-        <div className="space-y-4 mb-10">
+        <div className="flex items-center gap-3 mb-6 mt-12">
+          <div className="bg-pink-500/10 border border-pink-500/20 text-pink-400 w-10 h-10 rounded-xl flex items-center justify-center">
+            <TrendingDown size={18} />
+          </div>
+          <h2 className="text-xl font-semibold text-white tracking-tight">Tool Breakdown</h2>
+        </div>
+
+        <div className="space-y-4 mb-16">
           {results.toolResults.map((tr: ToolAuditResult, i: number) => (
-            <div key={i} className="glass-card glass-card-hover p-5">
-              <div className="flex items-start justify-between mb-3">
+            <div key={i} className="sv-card sv-card-hover p-6">
+              <div className="flex items-start justify-between mb-4">
                 <div>
-                  <h3 className="font-semibold text-white">{tr.tool}</h3>
-                  <p className="text-xs text-slate-500">
+                  <h3 className="font-semibold text-white text-lg">{tr.tool}</h3>
+                  <p className="text-sm text-gray-500 font-mono mt-1">
                     Current: {tr.currentPlan} — ${tr.currentSpend}/mo
                   </p>
                 </div>
                 <ActionBadge action={tr.recommendedAction} />
               </div>
 
-              <p className="text-sm text-slate-400 leading-relaxed mb-3">
+              <p className="text-sm text-gray-400 leading-relaxed mb-4 pb-4 border-b border-gray-800">
                 {tr.defensibleReason}
               </p>
 
               <div className="flex items-center justify-between text-sm">
-                <span className="text-slate-500">
-                  → {tr.recommendedTool && tr.recommendedTool !== tr.tool
-                    ? `${tr.recommendedTool} ` : ''}
-                  {tr.recommendedPlan}
+                <span className="text-gray-300 font-medium flex items-center gap-2">
+                  <ArrowRight size={14} className="text-purple-400" />
+                  {tr.recommendedTool && tr.recommendedTool !== tr.tool ? `${tr.recommendedTool} ` : ''}{tr.recommendedPlan}
                 </span>
                 {tr.savingsMonthly > 0 && (
-                  <span className="font-bold text-emerald-400">
+                  <span className="font-bold text-emerald-400 bg-emerald-400/10 px-3 py-1 rounded-lg border border-emerald-400/20">
                     Save ${tr.savingsMonthly.toLocaleString()}/mo
                   </span>
                 )}
@@ -228,25 +178,23 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
           ))}
         </div>
 
-        {/* CTA */}
-        <div className="glass-card p-8 text-center">
-          <h2 className="text-xl font-bold mb-2">Want your own audit?</h2>
-          <p className="text-sm text-slate-400 mb-5">
-            Find hidden savings in your AI stack — it takes 60 seconds and it&apos;s free.
-          </p>
-          <Link
-            href="/"
-            className="btn-primary inline-flex items-center gap-2"
-          >
-            Audit My Stack <ExternalLink size={16} />
-          </Link>
+        <div className="sv-card p-10 text-center relative overflow-hidden group">
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-pink-500/5 z-0 transition-opacity opacity-0 group-hover:opacity-100"></div>
+          <div className="relative z-10">
+            <h2 className="text-2xl font-bold mb-3 text-white tracking-tight">Want your own audit?</h2>
+            <p className="text-gray-400 mb-8 max-w-md mx-auto">
+              Find hidden savings in your AI stack — it takes 60 seconds, requires no credit card, and is completely free.
+            </p>
+            <Link href="/" className="btn-primary inline-flex items-center gap-2 px-8 py-3">
+              Audit My Stack <ExternalLink size={16} />
+            </Link>
+          </div>
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="w-full border-t border-white/5 py-6 px-6 mt-auto">
-        <div className="max-w-4xl mx-auto text-center text-xs text-slate-600">
-          <p>© 2026 StackAudit by Credex. Pricing data verified as of May 2026.</p>
+      <footer className="w-full border-t border-gray-800/80 bg-[#0f172a] py-10 flex items-center justify-center text-gray-500 text-sm font-medium mt-auto">
+        <div className="flex items-center gap-2">
+          <Shield size={16} className="text-gray-600" /> StackAudit <span className="text-gray-700">|</span> Crafted for Developers
         </div>
       </footer>
     </div>

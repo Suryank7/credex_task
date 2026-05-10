@@ -10,31 +10,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "StackAudit — The Mint for AI Tool Spend | Free AI Stack Audit",
+  title: "StackAudit | Free AI Stack Audit",
   description:
     "Find hidden savings in your AI tool stack. Audit your team's spend on Cursor, Copilot, ChatGPT, Claude, and more — free, instant, and shareable.",
-  keywords: [
-    "AI tool audit",
-    "AI spend optimization",
-    "Cursor pricing",
-    "Copilot cost",
-    "ChatGPT savings",
-    "Claude pricing",
-    "AI infrastructure",
-    "Credex",
-  ],
-  openGraph: {
-    title: "StackAudit — Find Hidden Savings in Your AI Tool Stack",
-    description:
-      "Free audit tool for AI infrastructure spend. Discover overpaying seats, cheaper alternatives, and API optimizations.",
-    type: "website",
-    siteName: "StackAudit by Credex",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "StackAudit — The Mint for AI Tool Spend",
-    description: "Audit your AI tool stack for free. Find savings instantly.",
-  },
 };
 
 export default function RootLayout({
@@ -44,7 +22,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${inter.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col bg-grid-pattern bg-radial-glow">
+      <body className="min-h-full flex flex-col bg-[#0f172a]">
         {children}
       </body>
     </html>
