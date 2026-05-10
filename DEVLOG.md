@@ -1,0 +1,13 @@
+## Day 1 — 2026-05-10
+**Hours worked:** 4
+**What I did:** Architected the foundation for StackAudit. Initialized the Next.js App Router project with TypeScript and Tailwind. Designed the core `AuditEngine` logic covering 8 AI tools, ensuring math calculations correctly account for team sizes, use cases, and cross-tool comparisons. Sourced and documented all pricing data accurately for 2026. Designed the Supabase database schema with RLS policies and drafted the initial architecture documentation. Set up the GitHub Actions CI workflow to ensure tests run on push.
+**What I learned:** Tracing specific seat minimums (e.g., ChatGPT Business requiring 2 seats vs Copilot Business) is critical for accurate calculations, as simple flat-rate math doesn't reflect real SaaS pricing models.
+**Blockers / what I'm stuck on:** Currently awaiting user feedback/confirmation on the UI design phase before proceeding to build out the React components.
+**Plan for tomorrow:** Build the multi-step glassmorphic form for inputs and wire up local storage for state persistence. Implement the hero results page.
+
+## Day 2 — 2026-05-10
+**Hours worked:** 3
+**What I did:** Built the entire Next.js frontend application for StackAudit. Implemented the multi-tool dynamic form with Zod schema validation and react-hook-form integration. Created the `useLocalStorage` custom hook so form state persists across page reloads (key UX requirement). Built the conversion funnel: Input → Animated Savings Hero (Framer Motion count-up) → Glassmorphic Blur Gate → Email Capture → Unlock Full Report. Wired up the Anthropic API integration with a robust try/catch fallback to templated summaries. Created the `/api/audit` route that orchestrates Supabase persistence, AI summary generation, and Resend email dispatch. Built the dynamic `/report/[id]` page with `generateMetadata` for rich Open Graph previews (viral loop). Documented all AI prompts in `PROMPTS.md`.
+**What I learned:** Next.js API routes (App Router) with dynamic imports make handling optional dependencies (like Anthropic SDK) much cleaner — the SDK isn't even bundled if the API key isn't configured. The Framer Motion `AnimatePresence` + `useFieldArray` combination requires careful key management to avoid animation glitches when dynamically adding/removing tool entries.
+**Blockers / what I'm stuck on:** Need to verify Supabase connection with real credentials and test the full end-to-end flow with actual API keys.
+**Plan for tomorrow:** Polish the UI animations, add the comprehensive GTM and ECONOMICS documentation, run Lighthouse performance checks, and prepare for deployment to Vercel.
