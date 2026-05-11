@@ -5,12 +5,14 @@ export function runAudit(input: AuditInput): AuditResult {
   const toolResults: ToolAuditResult[] = [];
   let totalMonthlySavings = 0;
   let totalAnnualSavings = 0;
+  let totalMonthlySpend = 0;
 
   for (const toolInput of input.tools) {
     const result = evaluateTool(toolInput, input.teamSize, input.useCase);
     toolResults.push(result);
     totalMonthlySavings += result.savingsMonthly;
     totalAnnualSavings += result.savingsAnnual;
+    totalMonthlySpend += toolInput.monthlySpend;
   }
 
   const savingsTier = 
@@ -18,12 +20,25 @@ export function runAudit(input: AuditInput): AuditResult {
     totalMonthlySavings > 100 ? 'moderate' : 
     totalMonthlySavings > 0 ? 'low' : 'optimal';
 
+  const INDUSTRY_AVG_PER_DEV = 45;
+  const teamSizeForMath = input.teamSize > 0 ? input.teamSize : 1;
+  const spendPerDev = totalMonthlySpend / teamSizeForMath;
+  
+  let benchmarkStatus: 'below' | 'at' | 'above' = 'at';
+  if (spendPerDev < INDUSTRY_AVG_PER_DEV * 0.9) benchmarkStatus = 'below';
+  else if (spendPerDev > INDUSTRY_AVG_PER_DEV * 1.1) benchmarkStatus = 'above';
+
   return {
     toolResults,
     totalMonthlySavings,
     totalAnnualSavings,
     savingsTier,
-    credexRelevant: totalMonthlySavings >= 500
+    credexRelevant: totalMonthlySavings >= 500,
+    benchmark: {
+      spendPerDev: Math.round(spendPerDev),
+      industryAverage: INDUSTRY_AVG_PER_DEV,
+      status: benchmarkStatus
+    }
   };
 }
 

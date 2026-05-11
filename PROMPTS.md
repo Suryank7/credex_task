@@ -52,3 +52,8 @@ If the Anthropic API fails for any reason (no API key, timeout, rate limit, serv
 - **Specific numbers mandate:** Forces Claude to cite the exact dollar amounts from the data rather than generating vague qualitative assessments.
 - **Credex CTA condition:** Only pushes the Credex consultation when the savings genuinely warrant it (>$500/mo), maintaining trust.
 - **Anti-filler rule:** Explicitly blocks common LLM filler phrases to keep the tone sharp and professional.
+
+## 3. What I tried that didn't work
+
+- **Giving the LLM the raw pricing data:** Initially, I tried passing the full `pricing-data.ts` to the LLM and asked it to calculate the savings itself. *Result:* Disastrous. The LLM would hallucinate fake tiers (like "ChatGPT Enterprise Lite") or invent imaginary discounts. It could not consistently perform basic arithmetic across variable team sizes. *Fix:* Hardcoded the financial logic in TypeScript (`audit-engine.ts`) and only used the LLM for text summarization.
+- **Unconstrained generation:** Early prompts just asked for a "financial summary". *Result:* Claude would write 400-word essays that looked like college term papers. *Fix:* Implemented the strict 80-120 word limit and forced a bulleted list format for the underlying data.

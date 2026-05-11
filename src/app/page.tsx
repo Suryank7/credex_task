@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -17,7 +17,7 @@ import type { AuditResult } from '@/lib/types';
 function AnimatedCounter({ value, prefix = '$', duration = 2 }: { value: number; prefix?: string; duration?: number }) {
   const [displayValue, setDisplayValue] = useState(0);
 
-  useState(() => {
+  useEffect(() => {
     const startTime = Date.now();
     const animate = () => {
       const elapsed = Date.now() - startTime;
@@ -27,7 +27,7 @@ function AnimatedCounter({ value, prefix = '$', duration = 2 }: { value: number;
       if (progress < 1) requestAnimationFrame(animate);
     };
     requestAnimationFrame(animate);
-  });
+  }, [value, duration]);
 
   return (
     <span>
@@ -50,6 +50,7 @@ export default function AuditPage() {
   const [emailSuccess, setEmailSuccess] = useState(false);
 
   const [isMounted, setIsMounted] = useState(false);
+  const hasHydrated = useRef(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -66,8 +67,9 @@ export default function AuditPage() {
   });
 
   useEffect(() => {
-    if (isMounted && savedFormData) {
+    if (isMounted && savedFormData && !hasHydrated.current) {
       reset(savedFormData);
+      hasHydrated.current = true;
     }
   }, [isMounted, savedFormData, reset]);
 
@@ -218,13 +220,15 @@ export default function AuditPage() {
                       type="number"
                       className="input-field"
                       placeholder="e.g. 12"
+                      aria-label="Team Size"
+                      aria-invalid={!!errors.teamSize}
                       {...register('teamSize', { valueAsNumber: true })}
                     />
                     {errors.teamSize && <p className="form-error">{errors.teamSize.message}</p>}
                   </div>
                   <div>
                     <label className="form-label" htmlFor="useCase">Primary Use Case</label>
-                    <select id="useCase" className="select-field" {...register('useCase')}>
+                    <select id="useCase" className="select-field" aria-label="Primary Use Case" aria-invalid={!!errors.useCase} {...register('useCase')}>
                       {USE_CASE_OPTIONS.map((uc) => (
                         <option key={uc.value} value={uc.value}>
                           {uc.label}
@@ -284,7 +288,7 @@ export default function AuditPage() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div>
                             <label className="form-label">Software</label>
-                            <select className="select-field" {...register(`tools.${index}.tool`)}>
+                            <select className="select-field" aria-label="Software Tool" aria-invalid={!!errors.tools?.[index]?.tool} {...register(`tools.${index}.tool`)}>
                               <option value="">Select tool…</option>
                               {TOOL_OPTIONS.map((t) => (
                                 <option key={t.value} value={t.value}>
@@ -298,7 +302,7 @@ export default function AuditPage() {
                           </div>
                           <div>
                             <label className="form-label">Plan Tier</label>
-                            <select className="select-field" {...register(`tools.${index}.plan`)} disabled={!selectedTool}>
+                            <select className="select-field" aria-label="Plan Tier" aria-invalid={!!errors.tools?.[index]?.plan} {...register(`tools.${index}.plan`)} disabled={!selectedTool}>
                               <option value="">Select plan…</option>
                               {plans.map((p) => (
                                 <option key={p.value} value={p.value}>
@@ -317,6 +321,8 @@ export default function AuditPage() {
                               step="0.01"
                               className="input-field"
                               placeholder="0.00"
+                              aria-label="Monthly Spend"
+                              aria-invalid={!!errors.tools?.[index]?.monthlySpend}
                               {...register(`tools.${index}.monthlySpend`, { valueAsNumber: true })}
                             />
                             {errors.tools?.[index]?.monthlySpend && (
@@ -329,6 +335,8 @@ export default function AuditPage() {
                               type="number"
                               className="input-field"
                               placeholder="1"
+                              aria-label="Active Seats"
+                              aria-invalid={!!errors.tools?.[index]?.seats}
                               {...register(`tools.${index}.seats`, { valueAsNumber: true })}
                             />
                             {errors.tools?.[index]?.seats && (
@@ -389,6 +397,60 @@ export default function AuditPage() {
                 {auditResult.savingsTier === 'moderate' && <span className="badge badge-warning">📊 Moderate Impact</span>}
                 {auditResult.savingsTier === 'low' && <span className="badge badge-success">✅ Minor Tweaks</span>}
                 {auditResult.savingsTier === 'optimal' && <span className="badge badge-success">🏆 Optimized</span>}
+              </div>
+            </div>
+
+            {/* Benchmark Section */}
+            <div className="relative mt-4 mb-12">
+              <div className="sv-card p-6 sm:p-8 bg-black/20 border border-white/5 rounded-2xl shadow-inner">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 gap-4">
+                  <div>
+                    <h3 className="text-lg font-semibold text-white flex items-center gap-2 tracking-tight">
+                      <BarChart3 size={20} className="text-indigo-400" />
+                      AI Spend Benchmark
+                    </h3>
+                    <p className="text-sm text-gray-400 mt-1">
+                      Your AI spend per developer is <span className="text-white font-mono font-medium">${auditResult.benchmark.spendPerDev}/mo</span>. 
+                      Companies your size average <span className="text-white font-mono font-medium">${auditResult.benchmark.industryAverage}/mo</span>.
+                    </p>
+                  </div>
+                  <div className="shrink-0">
+                    <span className={`text-[10px] sm:text-xs font-bold px-3 py-1.5 rounded-md border uppercase tracking-wider ${
+                      auditResult.benchmark.status === 'below' ? 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20' : 
+                      auditResult.benchmark.status === 'above' ? 'text-red-400 bg-red-400/10 border-red-400/20' : 
+                      'text-amber-400 bg-amber-400/10 border-amber-400/20'
+                    }`}>
+                      {auditResult.benchmark.status === 'below' ? 'Highly Efficient' : 
+                       auditResult.benchmark.status === 'above' ? 'Overspending' : 'Average'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Progress Bar UI */}
+                <div className="relative mt-8">
+                  <div className="absolute -top-6 text-[10px] text-gray-500 font-mono tracking-widest" style={{ left: '50%', transform: 'translateX(-50%)' }}>
+                    INDUSTRY AVG
+                  </div>
+                  <div className="relative h-3 bg-[#0a0f18] border border-white/5 rounded-full overflow-hidden shadow-inner">
+                    {/* Industry Average Marker */}
+                    <div 
+                      className="absolute top-0 bottom-0 w-0.5 bg-white/20 z-20"
+                      style={{ left: '50%' }}
+                    ></div>
+                    
+                    {/* Fill Bar */}
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: `${Math.min((auditResult.benchmark.spendPerDev / (auditResult.benchmark.industryAverage * 2)) * 100, 100)}%` }}
+                      transition={{ duration: 1.2, delay: 0.3, ease: "easeOut" }}
+                      className={`absolute top-0 bottom-0 left-0 z-10 ${
+                        auditResult.benchmark.status === 'below' ? 'bg-gradient-to-r from-emerald-600 to-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.5)]' : 
+                        auditResult.benchmark.status === 'above' ? 'bg-gradient-to-r from-red-600 to-red-400 shadow-[0_0_10px_rgba(248,113,113,0.5)]' : 
+                        'bg-gradient-to-r from-amber-600 to-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.5)]'
+                      }`}
+                    ></motion.div>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -540,12 +602,12 @@ export default function AuditPage() {
 
                         <form onSubmit={handleEmailSubmit(onEmailSubmit)} className="space-y-4">
                           <div>
-                            <input type="email" className="input-field text-center py-3 bg-[#0a0f18]" placeholder="you@company.com" {...registerEmail('email')} />
+                            <input type="email" className="input-field text-center py-3 bg-[#0a0f18]" placeholder="you@company.com" aria-label="Email Address" aria-invalid={!!emailErrors.email} {...registerEmail('email')} />
                             {emailErrors.email && <p className="form-error">{emailErrors.email.message}</p>}
                           </div>
                           <div className="grid grid-cols-2 gap-3">
-                            <input type="text" className="input-field text-center bg-[#0a0f18]" placeholder="Company" {...registerEmail('companyName')} />
-                            <input type="text" className="input-field text-center bg-[#0a0f18]" placeholder="Role" {...registerEmail('role')} />
+                            <input type="text" className="input-field text-center bg-[#0a0f18]" placeholder="Company" aria-label="Company Name" {...registerEmail('companyName')} />
+                            <input type="text" className="input-field text-center bg-[#0a0f18]" placeholder="Role" aria-label="Role" {...registerEmail('role')} />
                           </div>
                           <input type="text" className="hidden" tabIndex={-1} autoComplete="off" aria-hidden="true" {...registerEmail('honeypot')} />
                           

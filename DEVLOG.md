@@ -18,3 +18,9 @@
 **What I learned:** Writing unit tests for deterministic math is dramatically easier than testing UI components — every assertion is a hardcoded number derived from a specific pricing rule, so there's zero ambiguity. The harder part was writing the GTM strategy with specific channels rather than generic "post on social media" advice. Forcing myself to name exact subreddits and Slack communities made the strategy actually actionable.
 **Blockers / what I'm stuck on:** Need to conduct 3 live user interviews and fill in the USER_INTERVIEWS.md template with real quotes. Also need to write the personal REFLECTION.md answers.
 **Plan for tomorrow:** Final deployment to Vercel, populate .env.local with production credentials, conduct user interviews, write reflection, and do final repo cleanup before submission.
+
+## Day 5 — 2026-05-11
+**Hours worked:** 3
+**What I did:** Implemented Benchmark Mode bonus feature showing per-developer spend vs industry average. Drafted the Twitter launch thread. 
+**What I learned:** Calculating per-seat averages surfaced some edge cases when team size input was left blank. 
+**Blockers:** Making the Benchmark progress bar responsive.

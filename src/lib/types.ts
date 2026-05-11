@@ -32,4 +32,9 @@ export interface AuditResult {
   totalAnnualSavings: number;
   savingsTier: 'high' | 'moderate' | 'low' | 'optimal';
   credexRelevant: boolean; // true if >$500/mo savings
+  benchmark: {
+    spendPerDev: number;
+    industryAverage: number;
+    status: 'below' | 'at' | 'above';
+  };
 }

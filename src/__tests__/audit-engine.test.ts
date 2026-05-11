@@ -146,4 +146,26 @@ describe('AuditEngine — Deterministic Finance Logic', () => {
     expect(resultZero.toolResults[0].savingsMonthly).toBeGreaterThanOrEqual(0);
     expect(resultZero.toolResults[0].savingsAnnual).toBeGreaterThanOrEqual(0);
   });
+  // ─────────────────────────────────────────────────────────
+  // TEST 6: Benchmark Logic Verification
+  // Scenario: A 10-person team spending $600/mo ($60/dev).
+  //   Industry average is $45.
+  //   $60 > $45 * 1.1 ($49.50) → status should be 'above'.
+  // ─────────────────────────────────────────────────────────
+  it('TEST 6: accurately calculates per-developer benchmark spend', () => {
+    const input: AuditInput = {
+      teamSize: 10,
+      useCase: 'mixed',
+      tools: [
+        { tool: 'Cursor', plan: 'Teams', monthlySpend: 400, seats: 10 },
+        { tool: 'ChatGPT', plan: 'Plus', monthlySpend: 200, seats: 10 }
+      ]
+    };
+    const result = runAudit(input);
+
+    expect(result.benchmark).toBeDefined();
+    expect(result.benchmark.spendPerDev).toBe(60); // (400 + 200) / 10
+    expect(result.benchmark.industryAverage).toBe(45);
+    expect(result.benchmark.status).toBe('above');
+  });
 });
