@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
+import fs from 'fs';
+import path from 'path';
+import nodemailer from 'nodemailer';
 import type { AuditResult, AuditInput } from '@/lib/types';
 
 /* ============================================
@@ -142,8 +145,31 @@ async function saveToDatabase(
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !supabaseServiceKey) {
-    console.warn('[StackAudit] Supabase not configured. Skipping database save.');
-    return false;
+    console.warn('[StackAudit] Supabase not configured. Using local JSON file fallback.');
+    try {
+      const dbDir = path.join(process.cwd(), '.data');
+      if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir, { recursive: true });
+      
+      const record = {
+        id: auditId,
+        team_size: auditInput.teamSize,
+        use_case: auditInput.useCase,
+        tools: auditInput.tools,
+        results: auditResult,
+        total_monthly_savings: auditResult.totalMonthlySavings,
+        total_annual_savings: auditResult.totalAnnualSavings,
+        ai_summary: aiSummary,
+        is_public: true,
+        created_at: new Date().toISOString()
+      };
+      
+      const filePath = path.join(dbDir, `${auditId}.json`);
+      fs.writeFileSync(filePath, JSON.stringify(record, null, 2));
+      return true;
+    } catch (e) {
+      console.error('[StackAudit] Local fallback failed:', e);
+      return false;
+    }
   }
 
   try {
@@ -201,8 +227,40 @@ async function sendAuditEmail(
   const resendApiKey = process.env.RESEND_API_KEY;
   const fromEmail = process.env.RESEND_FROM_EMAIL || 'audit@stackaudit.dev';
 
+  const credexCTA = credexRelevant
+    ? `\n\n💎 With $${totalSavings.toLocaleString()}/mo in potential savings, you qualify for a FREE Credex consultation to negotiate enterprise credits and volume discounts.\n\n👉 Reply to this email to schedule your call.`
+    : '';
+
+  const emailText = `Hi there,\n\nYour StackAudit report is ready! We found $${totalSavings.toLocaleString()}/mo ($${(totalSavings * 12).toLocaleString()}/yr) in potential savings across your AI tool stack.\n\n📊 View your full report: ${reportUrl}\n${credexCTA}\n\n— The StackAudit Team (by Credex)`;
+
   if (!resendApiKey) {
-    console.warn('[StackAudit] Resend not configured. Skipping email send.');
+    console.warn('[StackAudit] Resend not configured. Falling back to Nodemailer test account.');
+    try {
+      const testAccount = await nodemailer.createTestAccount();
+      const transporter = nodemailer.createTransport({
+        host: testAccount.smtp.host,
+        port: testAccount.smtp.port,
+        secure: testAccount.smtp.secure,
+        auth: {
+          user: testAccount.user,
+          pass: testAccount.pass,
+        },
+      });
+
+      const info = await transporter.sendMail({
+        from: `"StackAudit Team" <${fromEmail}>`,
+        to: email,
+        subject: `Your StackAudit Report — $${totalSavings.toLocaleString()}/mo in AI Savings Found`,
+        text: emailText,
+      });
+
+      console.log('=============================================');
+      console.log('[StackAudit] Test Email sent: %s', info.messageId);
+      console.log('[StackAudit] Preview Test Email URL: %s', nodemailer.getTestMessageUrl(info));
+      console.log('=============================================');
+    } catch (error) {
+      console.error('[StackAudit] Failed to send test email:', error);
+    }
     return;
   }
 
@@ -210,22 +268,11 @@ async function sendAuditEmail(
     const { Resend } = await import('resend');
     const resend = new Resend(resendApiKey);
 
-    const credexCTA = credexRelevant
-      ? `\n\n💎 With $${totalSavings.toLocaleString()}/mo in potential savings, you qualify for a FREE Credex consultation to negotiate enterprise credits and volume discounts.\n\n👉 Reply to this email to schedule your call.`
-      : '';
-
     await resend.emails.send({
       from: fromEmail,
       to: email,
       subject: `Your StackAudit Report — $${totalSavings.toLocaleString()}/mo in AI Savings Found`,
-      text: `Hi there,
-
-Your StackAudit report is ready! We found $${totalSavings.toLocaleString()}/mo ($${(totalSavings * 12).toLocaleString()}/yr) in potential savings across your AI tool stack.
-
-📊 View your full report: ${reportUrl}
-${credexCTA}
-
-— The StackAudit Team (by Credex)`,
+      text: emailText,
     });
   } catch (error) {
     // Non-blocking: email failure shouldn't break the user flow

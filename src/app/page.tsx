@@ -56,7 +56,7 @@ export default function AuditPage() {
     setIsMounted(true);
   }, []);
 
-  const { register, control, handleSubmit, watch, formState: { errors }, reset } = useForm<AuditFormData>({
+  const { register, control, handleSubmit, watch, getValues, formState: { errors }, reset } = useForm<AuditFormData>({
     resolver: zodResolver(auditFormSchema),
     defaultValues: {
       teamSize: undefined,
@@ -74,13 +74,16 @@ export default function AuditPage() {
   }, [isMounted, savedFormData, reset]);
 
   const { fields, append, remove } = useFieldArray({ control, name: 'tools' });
+  const watchedTools = watch('tools');
 
-  const watchedValues = watch();
   useEffect(() => {
-    if (isMounted && watchedValues.tools?.length > 0) {
-      setSavedFormData(watchedValues);
-    }
-  }, [JSON.stringify(watchedValues), isMounted, setSavedFormData]);
+    const subscription = watch((value) => {
+      if (isMounted && value.tools?.length && value.tools.length > 0) {
+        setSavedFormData(value as AuditFormData);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [watch, isMounted, setSavedFormData]);
 
   const { register: registerEmail, handleSubmit: handleEmailSubmit, formState: { errors: emailErrors } } = useForm<EmailGateFormData>({
     resolver: zodResolver(emailGateSchema),
@@ -115,7 +118,7 @@ export default function AuditPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...data,
-          auditInput: watchedValues,
+          auditInput: getValues(),
           auditResult,
         }),
       });
@@ -133,7 +136,7 @@ export default function AuditPage() {
     } finally {
       setIsSubmittingEmail(false);
     }
-  }, [auditResult, watchedValues, clearSavedFormData]);
+  }, [auditResult, getValues, clearSavedFormData]);
 
   const getPlansForTool = (toolValue: string) => TOOL_OPTIONS.find((t) => t.value === toolValue)?.plans || [];
 
@@ -168,7 +171,7 @@ export default function AuditPage() {
           Stop <span className="text-gradient">overpaying</span> for<br />your AI tools.
         </h1>
         <p className="text-lg text-gray-400 max-w-2xl mx-auto mb-2 leading-relaxed">
-          The developer's second brain for finance. Add your team's subscriptions below to instantly find wasted seats, cheaper alternatives, and API optimizations.
+          The developer&apos;s second brain for finance. Add your team&apos;s subscriptions below to instantly find wasted seats, cheaper alternatives, and API optimizations.
         </p>
       </motion.section>
 
@@ -262,7 +265,7 @@ export default function AuditPage() {
 
                 <AnimatePresence mode="popLayout">
                   {fields.map((field, index) => {
-                    const selectedTool = watchedValues.tools?.[index]?.tool || '';
+                    const selectedTool = watchedTools?.[index]?.tool || '';
                     const plans = getPlansForTool(selectedTool);
 
                     return (

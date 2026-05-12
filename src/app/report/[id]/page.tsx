@@ -25,6 +25,17 @@ async function getAuditById(id: string): Promise<AuditRecord | null> {
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseAnonKey) {
+    try {
+      const fs = await import('fs');
+      const path = await import('path');
+      const filePath = path.join(process.cwd(), '.data', `${id}.json`);
+      if (fs.existsSync(filePath)) {
+        const data = fs.readFileSync(filePath, 'utf-8');
+        return JSON.parse(data) as AuditRecord;
+      }
+    } catch (e) {
+      console.error('[StackAudit] Local fallback read failed:', e);
+    }
     return null;
   }
 
