@@ -20,25 +20,49 @@ export function runAudit(input: AuditInput): AuditResult {
     totalMonthlySavings > 100 ? 'moderate' : 
     totalMonthlySavings > 0 ? 'low' : 'optimal';
 
-  const INDUSTRY_AVG_PER_DEV = 45;
-  const teamSizeForMath = input.teamSize > 0 ? input.teamSize : 1;
-  const spendPerDev = totalMonthlySpend / teamSizeForMath;
-  
-  let benchmarkStatus: 'below' | 'at' | 'above' = 'at';
-  if (spendPerDev < INDUSTRY_AVG_PER_DEV * 0.9) benchmarkStatus = 'below';
-  else if (spendPerDev > INDUSTRY_AVG_PER_DEV * 1.1) benchmarkStatus = 'above';
-
   return {
     toolResults,
     totalMonthlySavings,
     totalAnnualSavings,
     savingsTier,
     credexRelevant: totalMonthlySavings >= 500,
-    benchmark: {
-      spendPerDev: Math.round(spendPerDev),
+    benchmark: calculateBenchmark(totalMonthlySpend, input.teamSize)
+  };
+}
+
+/**
+ * Calculates per-developer AI spend benchmark against industry average.
+ * Industry gold standard: $45/developer/month (source: 2026 SaaS benchmarks).
+ * 
+ * Edge cases:
+ * - teamSize <= 0 or null/undefined → returns 'unavailable' status with $0 spend.
+ * - totalSpend = 0 → returns 'below' status (efficient — no spend).
+ */
+export const INDUSTRY_AVG_PER_DEV = 45;
+
+export function calculateBenchmark(
+  totalSpend: number,
+  teamSize: number | null | undefined
+): AuditResult['benchmark'] {
+  // Guard: prevent division by zero or nonsensical team sizes
+  if (!teamSize || teamSize <= 0) {
+    return {
+      spendPerDev: 0,
       industryAverage: INDUSTRY_AVG_PER_DEV,
-      status: benchmarkStatus
-    }
+      status: 'unavailable' as AuditResult['benchmark']['status']
+    };
+  }
+
+  const spendPerDev = totalSpend / teamSize;
+
+  let status: 'below' | 'at' | 'above' = 'at';
+  if (spendPerDev < INDUSTRY_AVG_PER_DEV * 0.9) status = 'below';
+  else if (spendPerDev > INDUSTRY_AVG_PER_DEV * 1.1) status = 'above';
+
+  return {
+    spendPerDev: Math.round(spendPerDev),
+    industryAverage: INDUSTRY_AVG_PER_DEV,
+    status
   };
 }
 

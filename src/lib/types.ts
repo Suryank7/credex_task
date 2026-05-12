@@ -35,6 +35,6 @@ export interface AuditResult {
   benchmark: {
     spendPerDev: number;
     industryAverage: number;
-    status: 'below' | 'at' | 'above';
+    status: 'below' | 'at' | 'above' | 'unavailable';
   };
 }

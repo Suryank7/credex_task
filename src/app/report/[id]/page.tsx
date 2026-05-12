@@ -63,6 +63,11 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
       type: 'website',
       siteName: 'StackAudit',
     },
+    twitter: {
+      card: 'summary_large_image',
+      title: `$${audit.total_annual_savings.toLocaleString()}/yr in AI Savings Found`,
+      description: `This ${audit.team_size}-person team found $${audit.total_monthly_savings.toLocaleString()}/mo in savings.`,
+    },
   };
 }
 
@@ -86,7 +91,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
     <div className="flex flex-col items-center min-h-screen">
       <header className="w-full border-b border-gray-800/80 bg-[#0f172a] py-4 px-6 sticky top-0 z-50">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+          <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity" aria-label="StackAudit Home">
             <div className="w-8 h-8 rounded-lg bg-gradient-primary flex items-center justify-center">
               <BarChart3 size={18} className="text-white" />
             </div>
@@ -94,7 +99,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
               Stack<span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500">Audit</span>
             </span>
           </Link>
-          <Link href="/" className="btn-secondary flex items-center gap-1.5 text-sm">
+          <Link href="/" className="btn-secondary flex items-center gap-1.5 text-sm" aria-label="Run a new audit">
             <ArrowLeft size={14} /> Run Audit
           </Link>
         </div>
@@ -126,6 +131,53 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
             <span className="text-sm font-medium text-gray-500"> per year</span>
           </p>
         </div>
+
+        {/* Benchmark Gauge */}
+        {results.benchmark && results.benchmark.status !== 'unavailable' && (
+          <div className="sv-card p-6 sm:p-8 mb-10 bg-black/20 border border-white/5" role="region" aria-label="AI Spend Benchmark">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 gap-4">
+              <div>
+                <h2 className="text-lg font-semibold text-white flex items-center gap-2 tracking-tight">
+                  <BarChart3 size={20} className="text-indigo-400" />
+                  AI Spend Benchmark
+                </h2>
+                <p className="text-sm text-gray-400 mt-1">
+                  Your AI spend per developer is <span className="text-white font-mono font-medium">${results.benchmark.spendPerDev}/mo</span>.
+                  Industry average: <span className="text-white font-mono font-medium">${results.benchmark.industryAverage}/mo</span>.
+                </p>
+              </div>
+              <span className={`text-[10px] sm:text-xs font-bold px-3 py-1.5 rounded-md border uppercase tracking-wider ${
+                results.benchmark.status === 'below' ? 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20' :
+                results.benchmark.status === 'above' ? 'text-red-400 bg-red-400/10 border-red-400/20' :
+                'text-amber-400 bg-amber-400/10 border-amber-400/20'
+              }`}>
+                {results.benchmark.status === 'below' ? 'Highly Efficient' :
+                 results.benchmark.status === 'above' ? 'Overspending' : 'Average'}
+              </span>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="relative mt-8">
+              <div className="absolute -top-6 text-[10px] text-gray-500 font-mono tracking-widest" style={{ left: '50%', transform: 'translateX(-50%)' }}>
+                INDUSTRY AVG
+              </div>
+              <div className="relative h-3 bg-[#0a0f18] border border-white/5 rounded-full overflow-hidden shadow-inner">
+                <div
+                  className="absolute top-0 bottom-0 w-0.5 bg-white/20 z-20"
+                  style={{ left: '50%' }}
+                ></div>
+                <div
+                  className={`absolute top-0 bottom-0 left-0 z-10 rounded-full transition-all duration-1000 ${
+                    results.benchmark.status === 'below' ? 'bg-gradient-to-r from-emerald-600 to-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.5)]' :
+                    results.benchmark.status === 'above' ? 'bg-gradient-to-r from-red-600 to-red-400 shadow-[0_0_10px_rgba(248,113,113,0.5)]' :
+                    'bg-gradient-to-r from-amber-600 to-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.5)]'
+                  }`}
+                  style={{ width: `${Math.min((results.benchmark.spendPerDev / (results.benchmark.industryAverage * 2)) * 100, 100)}%` }}
+                ></div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {ai_summary && (
           <div className="sv-card p-8 mb-8">
@@ -185,7 +237,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
             <p className="text-gray-400 mb-8 max-w-md mx-auto">
               Find hidden savings in your AI stack — it takes 60 seconds, requires no credit card, and is completely free.
             </p>
-            <Link href="/" className="btn-primary inline-flex items-center gap-2 px-8 py-3">
+            <Link href="/" className="btn-primary inline-flex items-center gap-2 px-8 py-3" aria-label="Start your free AI stack audit">
               Audit My Stack <ExternalLink size={16} />
             </Link>
           </div>

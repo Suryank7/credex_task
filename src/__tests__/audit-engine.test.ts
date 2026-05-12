@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { runAudit } from '../lib/audit-engine';
+import { runAudit, calculateBenchmark } from '../lib/audit-engine';
 import type { AuditInput } from '../lib/types';
 
 describe('AuditEngine — Deterministic Finance Logic', () => {
@@ -167,5 +167,30 @@ describe('AuditEngine — Deterministic Finance Logic', () => {
     expect(result.benchmark.spendPerDev).toBe(60); // (400 + 200) / 10
     expect(result.benchmark.industryAverage).toBe(45);
     expect(result.benchmark.status).toBe('above');
+  });
+
+  // ─────────────────────────────────────────────────────────
+  // TEST 7: Benchmark edge cases — division by zero & below average
+  // Tests the standalone calculateBenchmark function directly:
+  //   - teamSize = 0 → returns 'unavailable' (no division by zero)
+  //   - teamSize = null → returns 'unavailable'
+  //   - $200 spend / 10 devs = $20/dev → 'below' ($20 < $45 * 0.9)
+  // ─────────────────────────────────────────────────────────
+  it('TEST 7: benchmark handles zero/null team size and below-average correctly', () => {
+    // Edge: teamSize = 0
+    const zeroTeam = calculateBenchmark(500, 0);
+    expect(zeroTeam.status).toBe('unavailable');
+    expect(zeroTeam.spendPerDev).toBe(0);
+
+    // Edge: teamSize = null
+    const nullTeam = calculateBenchmark(500, null);
+    expect(nullTeam.status).toBe('unavailable');
+    expect(nullTeam.spendPerDev).toBe(0);
+
+    // Normal: below average ($20/dev < $40.50 threshold)
+    const belowAvg = calculateBenchmark(200, 10);
+    expect(belowAvg.spendPerDev).toBe(20);
+    expect(belowAvg.status).toBe('below');
+    expect(belowAvg.industryAverage).toBe(45);
   });
 });
