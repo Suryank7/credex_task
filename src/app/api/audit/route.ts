@@ -139,7 +139,8 @@ async function saveToDatabase(
   aiSummary: string,
   email: string,
   companyName?: string,
-  role?: string
+  role?: string,
+  referredBy?: string | null
 ): Promise<boolean> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -160,7 +161,9 @@ async function saveToDatabase(
         total_annual_savings: auditResult.totalAnnualSavings,
         ai_summary: aiSummary,
         is_public: true,
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
+        referred_by: referredBy || null,
+        referral_code: auditId.slice(0, 8).toUpperCase(),
       };
       
       const filePath = path.join(dbDir, `${auditId}.json`);
@@ -286,7 +289,7 @@ async function sendAuditEmail(
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, companyName, role, honeypot, auditInput, auditResult } = body;
+    const { email, companyName, role, honeypot, auditInput, auditResult, referredBy } = body;
 
     // Spam protection: honeypot check
     if (honeypot && honeypot.length > 0) {
@@ -320,7 +323,8 @@ export async function POST(request: NextRequest) {
       aiSummary,
       email,
       companyName,
-      role
+      role,
+      referredBy
     );
 
     // 3. Send email asynchronously (fire-and-forget)

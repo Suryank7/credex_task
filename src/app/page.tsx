@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -39,7 +40,10 @@ function AnimatedCounter({ value, prefix = '$', duration = 2 }: { value: number;
 /* ============================================
    MAIN PAGE COMPONENT
 ============================================ */
-export default function AuditPage() {
+function AuditContent() {
+  const searchParams = useSearchParams();
+  const referralCode = searchParams.get('ref') || null;
+
   const [savedFormData, setSavedFormData, clearSavedFormData] = useLocalStorage<AuditFormData | null>('stackaudit-form', null);
   const [auditResult, setAuditResult] = useState<AuditResult | null>(null);
   const [isUnlocked, setIsUnlocked] = useState(false);
@@ -76,14 +80,15 @@ export default function AuditPage() {
   const { fields, append, remove } = useFieldArray({ control, name: 'tools' });
   const watchedTools = watch('tools');
 
+  const allValues = watch();
+  const serializedTools = JSON.stringify(allValues.tools);
+
   useEffect(() => {
-    const subscription = watch((value) => {
-      if (isMounted && value.tools?.length && value.tools.length > 0) {
-        setSavedFormData(value as AuditFormData);
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, [watch, isMounted, setSavedFormData]);
+    if (isMounted && allValues.tools?.length && allValues.tools.length > 0) {
+      setSavedFormData(allValues as AuditFormData);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [serializedTools, isMounted, setSavedFormData]);
 
   const { register: registerEmail, handleSubmit: handleEmailSubmit, formState: { errors: emailErrors } } = useForm<EmailGateFormData>({
     resolver: zodResolver(emailGateSchema),
@@ -120,6 +125,7 @@ export default function AuditPage() {
           ...data,
           auditInput: getValues(),
           auditResult,
+          referredBy: referralCode,
         }),
       });
 
@@ -136,7 +142,7 @@ export default function AuditPage() {
     } finally {
       setIsSubmittingEmail(false);
     }
-  }, [auditResult, getValues, clearSavedFormData]);
+  }, [auditResult, getValues, clearSavedFormData, referralCode]);
 
   const getPlansForTool = (toolValue: string) => TOOL_OPTIONS.find((t) => t.value === toolValue)?.plans || [];
 
@@ -258,6 +264,7 @@ export default function AuditPage() {
                     type="button"
                     onClick={() => append({ tool: '', plan: '', monthlySpend: 0, seats: 1 })}
                     className="btn-secondary flex items-center gap-1.5 mt-2 bg-[#0f172a]"
+                    aria-label="Add another AI tool"
                   >
                     <Plus size={14} /> Add Tool
                   </button>
@@ -282,7 +289,7 @@ export default function AuditPage() {
                             TOOL_{index + 1}
                           </span>
                           {fields.length > 1 && (
-                            <button type="button" onClick={() => remove(index)} className="btn-danger flex items-center gap-1">
+                            <button type="button" onClick={() => remove(index)} className="btn-danger flex items-center gap-1" aria-label={`Remove tool ${index + 1}`}>
                               <Trash2 size={12} /> Remove
                             </button>
                           )}
@@ -402,6 +409,40 @@ export default function AuditPage() {
                 {auditResult.savingsTier === 'optimal' && <span className="badge badge-success">🏆 Optimized</span>}
               </div>
             </div>
+
+            {/* Credex Consultation CTA — only when savings > $500/mo */}
+            {auditResult.credexRelevant && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="sv-card p-8 mb-8 border-emerald-500/20 bg-gradient-to-br from-emerald-500/5 to-transparent text-center"
+              >
+                <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-5">
+                  <Sparkles size={24} />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2 tracking-tight">You qualify for a free Credex consultation</h3>
+                <p className="text-sm text-gray-400 max-w-md mx-auto mb-6 leading-relaxed">
+                  With <span className="text-emerald-400 font-semibold">${auditResult.totalMonthlySavings.toLocaleString()}/mo</span> in potential savings, Credex can negotiate enterprise credits and volume discounts — saving an additional 20–40% on top.
+                </p>
+                <a
+                  href="https://credex.money"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-primary inline-flex items-center gap-2 px-8 py-3"
+                  aria-label="Book a free Credex consultation"
+                >
+                  Book Free Consultation <ArrowRight size={16} />
+                </a>
+              </motion.div>
+            )}
+
+            {/* Low Savings — Notify Me block for < $100/mo */}
+            {auditResult.totalMonthlySavings < 100 && auditResult.totalMonthlySavings > 0 && (
+              <div className="sv-card p-6 mb-8 border-gray-700/50 text-center">
+                <p className="text-sm text-gray-400 mb-3">Your stack is nearly optimized. Want us to notify you when new savings are detected?</p>
+                <p className="text-xs text-gray-500 font-mono">Unlock your report below to get alerts.</p>
+              </div>
+            )}
 
             {/* Benchmark Section */}
             <div className="relative mt-4 mb-12">
@@ -654,5 +695,17 @@ export default function AuditPage() {
         </div>
       </footer>
     </div>
+  );
+}
+
+export default function AuditPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#0f172a] flex items-center justify-center text-white">
+        <div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    }>
+      <AuditContent />
+    </Suspense>
   );
 }

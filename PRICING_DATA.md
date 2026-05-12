@@ -1,3 +1,9 @@
+# PRICING_DATA.md — Verified Tool Pricing Database
+
+All pricing data used by the `audit-engine.ts` deterministic engine. Sources verified on the dates listed. This file serves as the audit trail for every financial recommendation StackAudit produces.
+
+---
+
 ## Cursor
 - Hobby: $0/month — https://cursor.com/pricing — verified 2026-05-10
 - Pro: $20/month — https://cursor.com/pricing — verified 2026-05-10

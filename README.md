@@ -2,6 +2,8 @@
 
 StackAudit is a free, instant audit tool designed to help startup founders and engineering managers analyze their AI tool stack, identify seat waste, and uncover cheaper alternatives. By inputting current subscriptions, teams receive a clear breakdown of potential monthly and annual savings, alongside an AI-generated CFO summary and a per-developer spend benchmark.
 
+> **🔗 Live URL:** [https://stackaudit.vercel.app](https://stackaudit.vercel.app) *(Deploy to Vercel and update this link)*
+
 ![StackAudit Landing Page](./public/landing-page.png)
 ![Audit Results](./public/audit-results.png)
 ![Benchmark Mode](./public/benchmark-mode.png)

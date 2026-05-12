@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { BarChart3, TrendingDown, Sparkles, ExternalLink, ArrowLeft, Shield, ArrowRight } from 'lucide-react';
+import { BarChart3, TrendingDown, Sparkles, ExternalLink, ArrowLeft, Shield, ArrowRight, Gift } from 'lucide-react';
 import Link from 'next/link';
 import type { AuditResult, ToolAuditResult } from '@/lib/types';
+import PdfDownloadButton from '@/components/PdfDownloadButton';
+import EmbedModal from '@/components/EmbedModal';
 
 /* ============================================
    DATA FETCHING
@@ -97,6 +99,9 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
 
   const { results, team_size, use_case, ai_summary, created_at } = audit;
   const createdDate = new Date(created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  const referralCode = id.slice(0, 8).toUpperCase();
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://stackaudit.dev';
+  const referralLink = `${baseUrl}/?ref=${referralCode}`;
 
   return (
     <div className="flex flex-col items-center min-h-screen">
@@ -110,13 +115,17 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
               Stack<span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500">Audit</span>
             </span>
           </Link>
-          <Link href="/" className="btn-secondary flex items-center gap-1.5 text-sm" aria-label="Run a new audit">
-            <ArrowLeft size={14} /> Run Audit
-          </Link>
+          <div className="flex items-center gap-2">
+            <PdfDownloadButton />
+            <EmbedModal />
+            <Link href="/" className="btn-secondary flex items-center gap-1.5 text-sm" aria-label="Run a new audit">
+              <ArrowLeft size={14} /> New Audit
+            </Link>
+          </div>
         </div>
       </header>
 
-      <main className="w-full max-w-3xl mx-auto px-6 py-16">
+      <main id="report-content" className="w-full max-w-3xl mx-auto px-6 py-16">
         <div className="text-center mb-12">
           <span className="badge badge-info mb-5">📊 Public Report</span>
           <h1 className="text-4xl sm:text-5xl font-bold tracking-tight mb-4 text-white">
@@ -239,6 +248,31 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
               </div>
             </div>
           ))}
+        </div>
+
+        {/* Referral Block */}
+        <div className="sv-card p-8 mb-10 border-amber-500/10 bg-gradient-to-br from-amber-500/5 to-transparent">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="bg-amber-500/10 border border-amber-500/20 text-amber-400 w-10 h-10 rounded-xl flex items-center justify-center">
+              <Gift size={18} />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-white tracking-tight">Share &amp; Earn</h2>
+              <p className="text-xs text-gray-500">Referral rewards</p>
+            </div>
+          </div>
+          <p className="text-sm text-gray-400 leading-relaxed mb-5">
+            For every startup that audits their stack through your link, you both get <span className="text-amber-400 font-semibold">$50 in Credex platform credits</span>.
+          </p>
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              readOnly
+              value={referralLink}
+              className="input-field text-xs font-mono bg-black/30 flex-1"
+              aria-label="Your referral link"
+            />
+          </div>
         </div>
 
         <div className="sv-card p-10 text-center relative overflow-hidden group">

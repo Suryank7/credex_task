@@ -1,0 +1,43 @@
+{
+  "id": "9da66517-834f-420c-bfab-271d7680ef93",
+  "team_size": 12,
+  "use_case": "data",
+  "tools": [
+    {
+      "tool": "gemini",
+      "plan": "ultra",
+      "monthlySpend": 23,
+      "seats": 1
+    }
+  ],
+  "results": {
+    "toolResults": [
+      {
+        "tool": "gemini",
+        "currentPlan": "ultra",
+        "currentSpend": 23,
+        "recommendedAction": "keep",
+        "recommendedPlan": "ultra",
+        "recommendedTool": "gemini",
+        "savingsMonthly": 0,
+        "savingsAnnual": 0,
+        "defensibleReason": "Your current setup appears optimal for your team size and use case.",
+        "confidenceLevel": "high"
+      }
+    ],
+    "totalMonthlySavings": 0,
+    "totalAnnualSavings": 0,
+    "savingsTier": "optimal",
+    "credexRelevant": false,
+    "benchmark": {
+      "spendPerDev": 2,
+      "industryAverage": 45,
+      "status": "below"
+    }
+  },
+  "total_monthly_savings": 0,
+  "total_annual_savings": 0,
+  "ai_summary": "Your 12-person team's AI stack is well-optimized. We found no significant overspend or wasted seats across your tools. You're spending efficiently — keep monitoring usage quarterly to stay ahead of pricing changes.",
+  "is_public": true,
+  "created_at": "2026-05-12T15:45:40.791Z"
+}
