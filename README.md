@@ -4,10 +4,6 @@ StackAudit is a free, instant audit tool designed to help startup founders and e
 
 > **🔗 Live URL:** [https://stackaudit.vercel.app](https://stackaudit.vercel.app) *(Deploy to Vercel and update this link)*
 
-![StackAudit Landing Page](./public/landing-page.png)
-![Audit Results](./public/audit-results.png)
-![Benchmark Mode](./public/benchmark-mode.png)
-
 ## Tech Stack
 
 | Layer | Technology |
@@ -17,7 +13,7 @@ StackAudit is a free, instant audit tool designed to help startup founders and e
 | Forms | React Hook Form + Zod v4 |
 | Database | Supabase (PostgreSQL + RLS) |
 | AI Summary | Anthropic Claude Sonnet 4 |
-| Email | Resend |
+| Email | Resend API|
 | Testing | Vitest (7 tests, 100% pass) |
 | Deployment | Vercel |
 
